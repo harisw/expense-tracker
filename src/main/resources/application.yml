@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: spring-expense-tracker
+
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/expense
+    username: expense
+    password: password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  jwt:
+    secret: gUcF4TnCI8FyUWq3RG9mObMGcjqxDlV5N+Eje0u8r9U=
+    access-token-expiry: 900000
+    refresh-token-expiry: 604800000  # 7 days
+
+  flyway:
+    enabled: true

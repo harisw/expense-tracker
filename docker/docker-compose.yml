@@ -1,0 +1,37 @@
+#services:
+#  db:
+#    image: postgres:16
+#    environment:
+#      POSTGRES_DB: expense
+#      POSTGRES_USER: expense
+#      POSTGRES_PASSWORD: expense
+#    ports:
+#      - "5433:5432"
+#
+#  app:
+#    build: .
+#    depends_on:
+#      - db
+#    environment:
+#      SPRING_PROFILES_ACTIVE: local
+#    ports:
+#      - "8080:8080"
+
+
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: expense-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: expense
+      POSTGRES_USER: expense
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
