@@ -53,5 +53,8 @@ public class UserRepositoryImpl implements UserRepository {
         jpa.deleteByPublicId(publicId);
     }
 
-
+    @Override
+    public void deleteAll() {
+        jpa.deleteAll();
+    }
 }

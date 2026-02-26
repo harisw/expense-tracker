@@ -1,4 +1,4 @@
 package com.harisw.springexpensetracker.application.auth.dto.command;
 
-public record AuthCommand(String email, String password) {
+public record LoginCommand(String email, String password) {
 }

@@ -1,6 +1,6 @@
 package com.harisw.springexpensetracker.application.auth.service;
 
-import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
+import com.harisw.springexpensetracker.application.auth.dto.command.LoginCommand;
 import com.harisw.springexpensetracker.application.auth.dto.response.AuthResponse;
 import com.harisw.springexpensetracker.application.auth.port.TokenService;
 import com.harisw.springexpensetracker.domain.auth.User;
@@ -23,7 +23,7 @@ public class LoginUserService {
         this.tokenService = tokenService;
     }
 
-    public AuthResponse login(AuthCommand cmd) throws JOSEException {
+    public AuthResponse login(LoginCommand cmd) throws JOSEException {
         User user = repository.findByEmail(cmd.email())
                 .orElseThrow(InvalidCredentialsException::new);
 

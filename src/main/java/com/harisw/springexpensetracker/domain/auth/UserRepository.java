@@ -16,4 +16,6 @@ public interface UserRepository {
     List<User> findAll();
 
     void deleteByPublicId(UUID publicId);
+
+    void deleteAll();
 }

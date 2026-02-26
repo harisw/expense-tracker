@@ -1,6 +1,6 @@
 package com.harisw.springexpensetracker.application.auth.dto.request;
 
-import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
+import com.harisw.springexpensetracker.application.auth.dto.command.LoginCommand;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -8,7 +8,7 @@ public record LoginRequest(@NotBlank @Email String email, @NotBlank String passw
     /**
      * @return AuthCommand
      */
-    public AuthCommand toCommand() {
-        return new AuthCommand(email, password);
+    public LoginCommand toCommand() {
+        return new LoginCommand(email, password);
     }
 }

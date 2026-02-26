@@ -1,6 +1,7 @@
 package com.harisw.springexpensetracker.application.auth.service;
 
-import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
+import com.harisw.springexpensetracker.application.auth.dto.command.LoginCommand;
+import com.harisw.springexpensetracker.application.auth.dto.command.RegisterCommand;
 import com.harisw.springexpensetracker.application.auth.dto.response.AuthResponse;
 import com.harisw.springexpensetracker.application.auth.port.TokenService;
 import com.harisw.springexpensetracker.domain.auth.User;
@@ -45,7 +46,7 @@ public class RegisterUserServiceTest {
 
     @Test
     void create_shouldReturnSavedUser() throws JOSEException {
-        AuthCommand command = new AuthCommand("TestUser@mail.com", "password123");
+        RegisterCommand command = new RegisterCommand("TestUser@mail.com", "TestUser", "password123");
 
         User savedUser = new User(1L, command.email(), null, UUID.randomUUID(), Instant.now());
 

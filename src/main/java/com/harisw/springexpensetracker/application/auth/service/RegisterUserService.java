@@ -1,6 +1,6 @@
 package com.harisw.springexpensetracker.application.auth.service;
 
-import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
+import com.harisw.springexpensetracker.application.auth.dto.command.RegisterCommand;
 import com.harisw.springexpensetracker.application.auth.dto.response.AuthResponse;
 import com.harisw.springexpensetracker.application.auth.port.TokenService;
 import com.harisw.springexpensetracker.domain.auth.User;
@@ -28,11 +28,11 @@ public class RegisterUserService {
         this.tokenService = tokenService;
     }
 
-    public AuthResponse register(AuthCommand cmd) throws JOSEException {
+    public AuthResponse register(RegisterCommand cmd) throws JOSEException {
         if (repository.findByEmail(cmd.email()).isPresent()) {
             throw new DuplicateEmailException();
         }
-        User user = new User(null, cmd.email(), null, UUID.randomUUID(), Instant.now());
+        User user = new User(null, cmd.email(), cmd.name(), UUID.randomUUID(), Instant.now());
         String passwordHash = passwordEncoder.encode(cmd.password());
 
         User savedUser = repository.save(user, passwordHash);
