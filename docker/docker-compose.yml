@@ -23,13 +23,13 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16
-    container_name: expense-postgres
+    container_name: expense-tracker-db
     restart: unless-stopped
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_DB: expense
-      POSTGRES_USER: expense
+      POSTGRES_DB: expense-tracker
+      POSTGRES_USER: expense_user
       POSTGRES_PASSWORD: password
     volumes:
       - pgdata:/var/lib/postgresql/data
