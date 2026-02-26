@@ -1,11 +1,11 @@
 package com.harisw.springexpensetracker.application.expense.service;
 
 import com.harisw.springexpensetracker.application.expense.dto.command.UpdateExpenseCommand;
-import com.harisw.springexpensetracker.domain.auth.Role;
 import com.harisw.springexpensetracker.domain.auth.User;
 import com.harisw.springexpensetracker.domain.common.Money;
+import com.harisw.springexpensetracker.domain.envelope.Envelope;
+import com.harisw.springexpensetracker.domain.envelope.EnvelopeRepository;
 import com.harisw.springexpensetracker.domain.expense.Expense;
-import com.harisw.springexpensetracker.domain.expense.ExpenseCategory;
 import com.harisw.springexpensetracker.domain.expense.ExpenseNotFoundException;
 import com.harisw.springexpensetracker.domain.expense.ExpenseRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +24,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateExpenseServiceTest {
@@ -32,53 +34,61 @@ class UpdateExpenseServiceTest {
     @Mock
     private ExpenseRepository repository;
 
+    @Mock
+    private EnvelopeRepository envelopeRepository;
+
     private UpdateExpenseService service;
     private User user;
+    private Envelope envelope;
 
     @BeforeEach
     void setUp() {
-        service = new UpdateExpenseService(repository);
-        user = new User(1L, UUID.randomUUID(), "test@example.com", Role.USER, Instant.now());
+        service = new UpdateExpenseService(repository, envelopeRepository);
+        user = new User(1L, "test@example.com", "Test User", UUID.randomUUID(), Instant.now());
+        envelope = new Envelope(10L, user.id(), null, UUID.randomUUID(), "Groceries",
+                false, new Money(new BigDecimal("500.00")), false, Instant.now());
     }
 
     @Test
     void update_shouldUpdateExpenseWithNewValues() {
         // given
         UUID publicId = UUID.randomUUID();
-        Instant createdAt = Instant.now().minusSeconds(3600);
+        Expense existing = new Expense(1L, envelope.id(), publicId, "Old description",
+                new Money(new BigDecimal("10.00")), LocalDate.of(2024, 1, 1), Instant.now().minusSeconds(3600));
 
-        Expense existing = new Expense(1L, user.id(), publicId, ExpenseCategory.FOOD, "Old description",
-                new Money(new BigDecimal("10.00")), LocalDate.of(2024, 1, 1), createdAt);
+        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, envelope.publicId(),
+                "New description", new BigDecimal("25.00"), LocalDate.of(2024, 2, 15));
 
-        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, ExpenseCategory.TRANSPORT, "New description",
-                new BigDecimal("25.00"), LocalDate.of(2024, 2, 15));
-
-        when(repository.findByPublicIdAndUserId(publicId, user.id())).thenReturn(Optional.of(existing));
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByPublicIdAndEnvelopeId(publicId, envelope.id()))
+                .thenReturn(Optional.of(existing));
         when(repository.save(any(Expense.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // when
         Expense result = service.update(command, user);
 
         // then
-        assertEquals(ExpenseCategory.TRANSPORT, result.category());
         assertEquals("New description", result.description());
         assertEquals(new BigDecimal("25.00"), result.amount().amount());
         assertEquals(LocalDate.of(2024, 2, 15), result.date());
     }
 
     @Test
-    void update_shouldPreserveIdAndCreatedAt() {
+    void update_shouldPreserveImmutableFields() {
         // given
         UUID publicId = UUID.randomUUID();
-        Instant createdAt = Instant.now().minusSeconds(3600);
+        Instant originalCreatedAt = Instant.parse("2024-01-01T00:00:00Z");
+        Expense existing = new Expense(99L, envelope.id(), publicId, "Description",
+                new Money(new BigDecimal("10.00")), LocalDate.now(), originalCreatedAt);
 
-        Expense existing = new Expense(99L, user.id(), publicId, ExpenseCategory.FOOD, "Description",
-                new Money(new BigDecimal("10.00")), LocalDate.now(), createdAt);
+        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, envelope.publicId(),
+                "Updated", new BigDecimal("50.00"), LocalDate.now());
 
-        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, ExpenseCategory.OTHER, "Updated",
-                new BigDecimal("50.00"), LocalDate.now());
-
-        when(repository.findByPublicIdAndUserId(publicId, user.id())).thenReturn(Optional.of(existing));
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByPublicIdAndEnvelopeId(publicId, envelope.id()))
+                .thenReturn(Optional.of(existing));
 
         ArgumentCaptor<Expense> captor = ArgumentCaptor.forClass(Expense.class);
         when(repository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
@@ -89,19 +99,22 @@ class UpdateExpenseServiceTest {
         // then
         Expense saved = captor.getValue();
         assertEquals(99L, saved.id());
-        assertEquals(user.id(), saved.userId());
+        assertEquals(envelope.id(), saved.envelopeId());
         assertEquals(publicId, saved.publicId());
-        assertEquals(createdAt, saved.createdAt());
+        assertEquals(originalCreatedAt, saved.createdAt());
     }
 
     @Test
     void update_shouldThrowExpenseNotFoundExceptionWhenNotFound() {
         // given
         UUID publicId = UUID.randomUUID();
-        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, ExpenseCategory.FOOD, "Description",
-                new BigDecimal("10.00"), LocalDate.now());
+        UpdateExpenseCommand command = new UpdateExpenseCommand(publicId, envelope.publicId(),
+                "Description", new BigDecimal("10.00"), LocalDate.now());
 
-        when(repository.findByPublicIdAndUserId(publicId, user.id())).thenReturn(Optional.empty());
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByPublicIdAndEnvelopeId(publicId, envelope.id()))
+                .thenReturn(Optional.empty());
 
         // when & then
         ExpenseNotFoundException exception = assertThrows(ExpenseNotFoundException.class,

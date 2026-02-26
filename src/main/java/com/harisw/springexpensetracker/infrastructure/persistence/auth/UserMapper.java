@@ -9,14 +9,14 @@ public final class UserMapper {
     public static UserJpaEntity toEntity(User u) {
         UserJpaEntity jpa = new UserJpaEntity();
         jpa.setId(u.id());
-        jpa.setPublicId(u.publicId());
         jpa.setEmail(u.email());
-        jpa.setRole(u.role());
+        jpa.setName(u.name());
+        jpa.setPublicId(u.publicId());
         jpa.setCreatedAt(u.createdAt());
         return jpa;
     }
 
     public static User toDomain(UserJpaEntity u) {
-        return new User(u.getId(), u.getPublicId(), u.getEmail(), u.getRole(), u.getCreatedAt());
+        return new User(u.getId(), u.getEmail(), u.getName(), u.getPublicId(), u.getCreatedAt());
     }
 }

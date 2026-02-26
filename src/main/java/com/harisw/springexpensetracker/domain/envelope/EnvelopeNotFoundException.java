@@ -1,12 +1,12 @@
-package com.harisw.springexpensetracker.domain.expense;
+package com.harisw.springexpensetracker.domain.envelope;
 
 import java.util.UUID;
 
-public class ExpenseNotFoundException extends RuntimeException {
+public class EnvelopeNotFoundException extends RuntimeException {
     private final UUID publicId;
 
-    public ExpenseNotFoundException(UUID publicId) {
-        super("Expense not found: " + publicId);
+    public EnvelopeNotFoundException(UUID publicId) {
+        super("Envelope not found: " + publicId);
         this.publicId = publicId;
     }
 

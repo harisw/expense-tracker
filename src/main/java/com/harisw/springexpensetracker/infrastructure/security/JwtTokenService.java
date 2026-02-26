@@ -46,7 +46,7 @@ public class JwtTokenService implements TokenService {
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(user.publicId().toString())
                 .claim("email", user.email())
-                .claim("role", user.role().name())
+                .claim("name", user.name())
                 .issueTime(new Date())
                 .expirationTime(new Date(System.currentTimeMillis() + accessTokenExpiry))
                 .build();

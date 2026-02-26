@@ -1,5 +1,3 @@
 ALTER TABLE expenses
-    ADD COLUMN user_id BIGINT NOT NULL
-    REFERENCES users(id);
-
-CREATE INDEX idx_expenses_user_id ON expenses(user_id);
+    ADD CONSTRAINT fk_expenses_envelope_id FOREIGN KEY (envelope_id) REFERENCES envelopes (id);
+CREATE INDEX ON expenses(envelope_id);

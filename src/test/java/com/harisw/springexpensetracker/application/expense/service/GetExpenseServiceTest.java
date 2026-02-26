@@ -1,10 +1,11 @@
 package com.harisw.springexpensetracker.application.expense.service;
 
-import com.harisw.springexpensetracker.domain.auth.Role;
 import com.harisw.springexpensetracker.domain.auth.User;
 import com.harisw.springexpensetracker.domain.common.Money;
+import com.harisw.springexpensetracker.domain.envelope.Envelope;
+import com.harisw.springexpensetracker.domain.envelope.EnvelopeNotFoundException;
+import com.harisw.springexpensetracker.domain.envelope.EnvelopeRepository;
 import com.harisw.springexpensetracker.domain.expense.Expense;
-import com.harisw.springexpensetracker.domain.expense.ExpenseCategory;
 import com.harisw.springexpensetracker.domain.expense.ExpenseNotFoundException;
 import com.harisw.springexpensetracker.domain.expense.ExpenseRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +21,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,74 +33,104 @@ class GetExpenseServiceTest {
     @Mock
     private ExpenseRepository repository;
 
+    @Mock
+    private EnvelopeRepository envelopeRepository;
+
     private GetExpenseService service;
     private User user;
+    private Envelope envelope;
 
     @BeforeEach
     void setUp() {
-        service = new GetExpenseService(repository);
-        user = new User(1L, UUID.randomUUID(), "test@example.com", Role.USER, Instant.now());
+        service = new GetExpenseService(repository, envelopeRepository);
+        user = new User(1L, "test@example.com", "Test User", UUID.randomUUID(), Instant.now());
+        envelope = new Envelope(10L, user.id(), null, UUID.randomUUID(), "Groceries",
+                false, new Money(new BigDecimal("500.00")), false, Instant.now());
     }
 
     @Test
     void get_shouldReturnExpenseWhenFound() {
         // given
         UUID publicId = UUID.randomUUID();
-        Expense expense = new Expense(1L, user.id(), publicId, ExpenseCategory.FOOD, "Lunch",
-                new Money(new BigDecimal("20.00")), LocalDate.now(), Instant.now());
+        Expense expense = expense(1L, publicId);
 
-        when(repository.findByPublicIdAndUserId(publicId, user.id())).thenReturn(Optional.of(expense));
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByPublicIdAndEnvelopeId(publicId, envelope.id()))
+                .thenReturn(Optional.of(expense));
 
         // when
-        Expense result = service.get(publicId, user);
+        Expense result = service.get(envelope.publicId(), publicId, user);
 
         // then
         assertEquals(expense, result);
-        verify(repository).findByPublicIdAndUserId(publicId, user.id());
+        verify(repository).findByPublicIdAndEnvelopeId(publicId, envelope.id());
     }
 
     @Test
-    void get_shouldThrowExpenseNotFoundExceptionWhenNotFound() {
+    void get_shouldThrowEnvelopeNotFoundExceptionWhenEnvelopeNotFound() {
         // given
         UUID publicId = UUID.randomUUID();
-        when(repository.findByPublicIdAndUserId(publicId, user.id())).thenReturn(Optional.empty());
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(EnvelopeNotFoundException.class,
+                () -> service.get(envelope.publicId(), publicId, user));
+    }
+
+    @Test
+    void get_shouldThrowExpenseNotFoundExceptionWhenExpenseNotFound() {
+        // given
+        UUID publicId = UUID.randomUUID();
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByPublicIdAndEnvelopeId(publicId, envelope.id()))
+                .thenReturn(Optional.empty());
 
         // when & then
         ExpenseNotFoundException exception = assertThrows(ExpenseNotFoundException.class,
-                () -> service.get(publicId, user));
+                () -> service.get(envelope.publicId(), publicId, user));
 
         assertEquals(publicId, exception.getPublicId());
     }
 
     @Test
-    void getAll_shouldReturnAllExpenses() {
+    void getAllByEnvelopeId_shouldReturnAllExpenses() {
         // given
         List<Expense> expenses = List.of(
-                new Expense(1L, user.id(), UUID.randomUUID(), ExpenseCategory.FOOD, "Lunch",
-                        new Money(new BigDecimal("20.00")), LocalDate.now(), Instant.now()),
-                new Expense(2L, user.id(), UUID.randomUUID(), ExpenseCategory.TRANSPORT, "Bus",
-                        new Money(new BigDecimal("5.00")), LocalDate.now(), Instant.now()));
+                expense(1L, UUID.randomUUID()),
+                expense(2L, UUID.randomUUID()));
 
-        when(repository.findAll()).thenReturn(expenses);
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByEnvelopeId(envelope.id())).thenReturn(expenses);
 
         // when
-        List<Expense> result = service.getAll();
+        List<Expense> result = service.getAllByEnvelopeId(envelope.publicId(), user);
 
         // then
         assertEquals(2, result.size());
         assertEquals(expenses, result);
-        verify(repository).findAll();
+        verify(repository).findByEnvelopeId(envelope.id());
     }
 
     @Test
-    void getAll_shouldReturnEmptyListWhenNoExpenses() {
+    void getAllByEnvelopeId_shouldReturnEmptyListWhenNoExpenses() {
         // given
-        when(repository.findAll()).thenReturn(List.of());
+        when(envelopeRepository.findByPublicIdAndUserId(envelope.publicId(), user.id()))
+                .thenReturn(Optional.of(envelope));
+        when(repository.findByEnvelopeId(envelope.id())).thenReturn(List.of());
 
         // when
-        List<Expense> result = service.getAll();
+        List<Expense> result = service.getAllByEnvelopeId(envelope.publicId(), user);
 
         // then
         assertTrue(result.isEmpty());
+    }
+
+    private Expense expense(Long id, UUID publicId) {
+        return new Expense(id, envelope.id(), publicId, "Test expense",
+                new Money(new BigDecimal("20.00")), LocalDate.now(), Instant.now());
     }
 }

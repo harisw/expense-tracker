@@ -2,6 +2,7 @@ package com.harisw.springexpensetracker.interfaces.rest;
 
 import com.harisw.springexpensetracker.domain.auth.exception.DuplicateEmailException;
 import com.harisw.springexpensetracker.domain.auth.exception.InvalidCredentialsException;
+import com.harisw.springexpensetracker.domain.envelope.EnvelopeNotFoundException;
 import com.harisw.springexpensetracker.domain.expense.ExpenseNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -11,6 +12,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(EnvelopeNotFoundException.class)
+    public ProblemDetail handleEnvelopeNotFound(EnvelopeNotFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setTitle("Envelope Not Found");
+        return problem;
+    }
 
     @ExceptionHandler(ExpenseNotFoundException.class)
     public ProblemDetail handleExpenseNotFound(ExpenseNotFoundException ex) {

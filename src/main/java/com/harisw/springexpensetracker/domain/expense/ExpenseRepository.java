@@ -7,13 +7,11 @@ import java.util.UUID;
 public interface ExpenseRepository {
     Expense save(Expense expense);
 
-    Optional<Expense> findByPublicIdAndUserId(UUID publicId, Long userId);
+    Optional<Expense> findByPublicIdAndEnvelopeId(UUID publicId, Long envelopeId);
 
-    List<Expense> findAll();
+    List<Expense> findByEnvelopeId(Long envelopeId);
 
-    List<Expense> findByUserId(Long userId);
-
-    void deleteByPublicId(UUID publicId);
+    boolean deleteByPublicIdAndUserId(UUID publicId, Long userId);
 
     // List<Expense> findByDateRange(LocalDate from, LocalDate to);
 }

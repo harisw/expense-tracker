@@ -1,18 +1,17 @@
 package com.harisw.springexpensetracker.infrastructure.persistence.expense;
 
-import com.harisw.springexpensetracker.domain.expense.ExpenseCategory;
-import com.harisw.springexpensetracker.infrastructure.persistence.auth.UserJpaEntity;
+import com.harisw.springexpensetracker.infrastructure.persistence.envelope.EnvelopeJpaEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Table;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,18 +20,18 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "expenses")
+@EntityListeners(AuditingEntityListener.class)
 public class ExpenseJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne
     @JoinColumn(
-            name = "user_id",
+            name = "envelope_id",
             nullable = false
     )
-    private UserJpaEntity user;
+    private EnvelopeJpaEntity envelope;
 
     @Column(name = "public_id", nullable = false, unique = true, updatable = false)
     private UUID publicId;
@@ -41,22 +40,11 @@ public class ExpenseJpaEntity {
 
     private BigDecimal amount;
 
-    @Enumerated(EnumType.STRING)
-    private ExpenseCategory category;
-
     private LocalDate date;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    public UserJpaEntity getUser() {
-        return user;
-    }
-
-    public void setUser(UserJpaEntity user) {
-        this.user = user;
-    }
 
     public ExpenseJpaEntity() {
     }
@@ -77,6 +65,14 @@ public class ExpenseJpaEntity {
         this.publicId = publicId;
     }
 
+    public EnvelopeJpaEntity getEnvelope() {
+        return envelope;
+    }
+
+    public void setEnvelope(EnvelopeJpaEntity envelope) {
+        this.envelope = envelope;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -91,14 +87,6 @@ public class ExpenseJpaEntity {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
-    }
-
-    public ExpenseCategory getCategory() {
-        return category;
-    }
-
-    public void setCategory(ExpenseCategory category) {
-        this.category = category;
     }
 
     public LocalDate getDate() {

@@ -49,24 +49,27 @@ public class ExpenseController {
         return create.create(req.toCommand(), user);
     }
 
-    @GetMapping("/{publicId}")
-    public Expense get(@PathVariable UUID publicId, Authentication authentication) {
+    @GetMapping("/{envelopePublicId}/{publicId}")
+    public Expense get(@PathVariable UUID envelopePublicId, @PathVariable UUID publicId,
+                       Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return get.get(publicId, user);
+        return get.get(envelopePublicId, publicId, user);
     }
 
-    @GetMapping
-    public List<Expense> getAll(Authentication authentication) {
+    @GetMapping("/{envelopePublicId}")
+    public List<Expense> getAll(@PathVariable UUID envelopePublicId, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return get.getAllByUserId(user);
+        return get.getAllByEnvelopeId(envelopePublicId, user);
     }
 
-    @PutMapping("/{publicId}")
-    public Expense update(@PathVariable UUID publicId, @Valid @RequestBody CreateExpenseRequest req,
+    @PutMapping("/{envelopePublicId}/{publicId}")
+    public Expense update(@PathVariable UUID envelopePublicId, @PathVariable UUID publicId,
+                          @Valid @RequestBody CreateExpenseRequest req,
                           Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         return update.update(
-                new UpdateExpenseCommand(publicId, req.category(), req.description(), req.amount(), req.date()), user);
+                new UpdateExpenseCommand(publicId, envelopePublicId, req.description(), req.amount(), req.date()),
+                user);
     }
 
     @DeleteMapping("/{publicId}")

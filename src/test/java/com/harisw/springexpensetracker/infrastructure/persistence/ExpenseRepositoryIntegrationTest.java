@@ -1,24 +1,22 @@
 package com.harisw.springexpensetracker.infrastructure.persistence;
 
 import com.harisw.springexpensetracker.domain.auth.AuthProvider;
-import com.harisw.springexpensetracker.domain.auth.Role;
 import com.harisw.springexpensetracker.domain.common.Money;
 import com.harisw.springexpensetracker.domain.expense.Expense;
-import com.harisw.springexpensetracker.domain.expense.ExpenseCategory;
 import com.harisw.springexpensetracker.domain.expense.ExpenseRepository;
 import com.harisw.springexpensetracker.infrastructure.persistence.auth.UserJpaEntity;
 import com.harisw.springexpensetracker.infrastructure.persistence.auth.UserJpaRepository;
+import com.harisw.springexpensetracker.infrastructure.persistence.envelope.EnvelopeJpaEntity;
+import com.harisw.springexpensetracker.infrastructure.persistence.envelope.EnvelopeJpaRepository;
 import com.harisw.springexpensetracker.infrastructure.persistence.expense.ExpenseJpaEntity;
 import com.harisw.springexpensetracker.infrastructure.persistence.expense.ExpenseJpaRepository;
 import com.harisw.springexpensetracker.infrastructure.persistence.expense.ExpenseRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -61,7 +59,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @DataJpaTest
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(ExpenseRepositoryImpl.class)
 class ExpenseRepositoryIntegrationTest {
 
@@ -70,69 +67,67 @@ class ExpenseRepositoryIntegrationTest {
      * TESTCONTAINERS SETUP
      * =========================================================================
      *
-     * @Container - Marks this as a container managed by Testcontainers static -
-     * Shared across all tests in this class (faster)
+     * @Container - Marks this as a container managed by Testcontainers
+     * static    - Shared across all tests in this class (faster)
      *
      * The container starts a real PostgreSQL database in Docker. Testcontainers
-     * automatically: 1. Pulls the postgres:15 image (if not cached) 2. Starts the
-     * container before tests 3. Stops and removes the container after tests
+     * automatically: 1. Pulls the postgres:15 image (if not cached) 2. Starts
+     * the container before tests 3. Stops and removes the container after tests
      */
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15").withDatabaseName("testdb")
-            .withUsername("test").withPassword("test");
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
+
     /*
      * =========================================================================
      * DEPENDENCY INJECTION
      * =========================================================================
      *
-     * @Autowired injects the real beans from Spring context. - ExpenseRepository:
-     * Our domain repository (ExpenseRepositoryImpl) - ExpenseJpaRepository: Spring
-     * Data JPA repository (for test setup)
+     * @Autowired injects the real beans from Spring context.
+     * - ExpenseRepository:     Our domain repository (ExpenseRepositoryImpl)
+     * - ExpenseJpaRepository:  Spring Data JPA repository (for test setup)
+     * - EnvelopeJpaRepository: For creating test envelopes (FK dependency)
+     * - UserJpaRepository:     For creating test users (FK dependency)
      */
     @Autowired
-    private ExpenseRepository repository; // The one we're testing
+    private ExpenseRepository repository;
     @Autowired
-    private ExpenseJpaRepository jpaRepository; // For test data setup
+    private ExpenseJpaRepository jpaRepository;
     @Autowired
-    private UserJpaRepository userJpaRepository; // For creating test users
+    private EnvelopeJpaRepository envelopeJpaRepository;
+    @Autowired
+    private UserJpaRepository userJpaRepository;
 
-    private UserJpaEntity testUser;
-
-    /*
-     * =========================================================================
-     * DYNAMIC PROPERTIES
-     * =========================================================================
-     *
-     * @DynamicPropertySource - Injects properties at runtime
-     *
-     * Why? Because Testcontainers assigns a RANDOM port to avoid conflicts. We
-     * can't hardcode the port in application.properties. This method runs BEFORE
-     * Spring context starts and provides the actual connection details from the
-     * running container.
-     */
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-    }
+    private EnvelopeJpaEntity testEnvelope;
 
     @BeforeEach
     void setUp() {
-        // Clean database before each test for isolation
+        // Clean in FK-safe order: expenses -> envelopes -> users
         jpaRepository.deleteAll();
+        envelopeJpaRepository.deleteAll();
         userJpaRepository.deleteAll();
 
-        // Create a test user that expenses will belong to
-        testUser = new UserJpaEntity();
+        UserJpaEntity testUser = new UserJpaEntity();
         testUser.setPublicId(UUID.randomUUID());
         testUser.setEmail("test@example.com");
-        testUser.setRole(Role.USER);
+        testUser.setName("Test User");
         testUser.setPasswordHash("hashed");
         testUser.setAuthProvider(AuthProvider.LOCAL);
         testUser.setCreatedAt(Instant.now());
         testUser = userJpaRepository.save(testUser);
+
+        testEnvelope = new EnvelopeJpaEntity();
+        testEnvelope.setPublicId(UUID.randomUUID());
+        testEnvelope.setUser(testUser);
+        testEnvelope.setName("Groceries");
+        testEnvelope.setTemplate(false);
+        testEnvelope.setBudget(new BigDecimal("500.00"));
+        testEnvelope.setCanNotify(false);
+        testEnvelope.setCreatedAt(Instant.now());
+        testEnvelope = envelopeJpaRepository.save(testEnvelope);
     }
 
     /*
@@ -143,41 +138,37 @@ class ExpenseRepositoryIntegrationTest {
      */
     @Test
     void save_shouldPersistExpenseAndGenerateId() {
-        // given - Create a domain expense (id is null, will be generated)
-        Expense expense = new Expense(null, testUser.getId(), UUID.randomUUID(), ExpenseCategory.FOOD,
+        // given
+        Expense expense = new Expense(null, testEnvelope.getId(), UUID.randomUUID(),
                 "Lunch at restaurant", new Money(new BigDecimal("25.50")), LocalDate.of(2024, 1, 15), Instant.now());
 
-        // when - Save through our repository
+        // when
         Expense saved = repository.save(expense);
 
-        // then - Verify it was persisted correctly
+        // then
         assertNotNull(saved.id(), "Database should generate an ID");
-        assertEquals(testUser.getId(), saved.userId());
+        assertEquals(testEnvelope.getId(), saved.envelopeId());
         assertEquals(expense.publicId(), saved.publicId());
-        assertEquals(expense.category(), saved.category());
         assertEquals(expense.description(), saved.description());
         assertEquals(0, expense.amount().amount().compareTo(saved.amount().amount()));
         assertEquals(expense.date(), saved.date());
-
-        // Verify it's actually in the database
         assertTrue(jpaRepository.findById(saved.id()).isPresent());
     }
 
     /*
      * =========================================================================
-     * TEST: Find by public ID and user ID
+     * TEST: Find by public ID and envelope ID
      * =========================================================================
      * Verifies the custom query method works correctly
      */
     @Test
-    void findByPublicIdAndUserId_shouldReturnExpenseWhenExists() {
-        // given - Insert test data
+    void findByPublicIdAndEnvelopeId_shouldReturnExpenseWhenExists() {
+        // given
         UUID publicId = UUID.randomUUID();
-        ExpenseJpaEntity entity = createEntity(publicId, "Test expense", "30.00");
-        jpaRepository.save(entity);
+        jpaRepository.save(createEntity(publicId, "Test expense", "30.00"));
 
         // when
-        Optional<Expense> result = repository.findByPublicIdAndUserId(publicId, testUser.getId());
+        Optional<Expense> result = repository.findByPublicIdAndEnvelopeId(publicId, testEnvelope.getId());
 
         // then
         assertTrue(result.isPresent());
@@ -186,12 +177,12 @@ class ExpenseRepositoryIntegrationTest {
     }
 
     @Test
-    void findByPublicIdAndUserId_shouldReturnEmptyWhenNotExists() {
-        // given - Random UUID that doesn't exist
+    void findByPublicIdAndEnvelopeId_shouldReturnEmptyWhenNotExists() {
+        // given
         UUID nonExistentId = UUID.randomUUID();
 
         // when
-        Optional<Expense> result = repository.findByPublicIdAndUserId(nonExistentId, testUser.getId());
+        Optional<Expense> result = repository.findByPublicIdAndEnvelopeId(nonExistentId, testEnvelope.getId());
 
         // then
         assertTrue(result.isEmpty());
@@ -199,29 +190,27 @@ class ExpenseRepositoryIntegrationTest {
 
     /*
      * =========================================================================
-     * TEST: Find all
+     * TEST: Find all by envelope ID
      * =========================================================================
      */
     @Test
-    void findAll_shouldReturnAllExpenses() {
-        // given - Insert multiple test records
+    void findByEnvelopeId_shouldReturnAllExpensesForEnvelope() {
+        // given
         jpaRepository.save(createEntity(UUID.randomUUID(), "Expense 1", "10.00"));
         jpaRepository.save(createEntity(UUID.randomUUID(), "Expense 2", "20.00"));
         jpaRepository.save(createEntity(UUID.randomUUID(), "Expense 3", "30.00"));
 
         // when
-        List<Expense> result = repository.findAll();
+        List<Expense> result = repository.findByEnvelopeId(testEnvelope.getId());
 
         // then
         assertEquals(3, result.size());
     }
 
     @Test
-    void findAll_shouldReturnEmptyListWhenNoExpenses() {
-        // given - Empty database (cleared in @BeforeEach)
-
+    void findByEnvelopeId_shouldReturnEmptyListWhenNoExpenses() {
         // when
-        List<Expense> result = repository.findAll();
+        List<Expense> result = repository.findByEnvelopeId(testEnvelope.getId());
 
         // then
         assertTrue(result.isEmpty());
@@ -229,24 +218,35 @@ class ExpenseRepositoryIntegrationTest {
 
     /*
      * =========================================================================
-     * TEST: Delete by public ID
+     * TEST: Delete by public ID and user ID
      * =========================================================================
+     * Uses a single JPQL DELETE traversing envelope.user.id — no SELECT needed
      */
     @Test
-    void deleteByPublicId_shouldRemoveExpense() {
+    void deleteByPublicIdAndUserId_shouldReturnTrueAndRemoveExpense() {
         // given
         UUID publicId = UUID.randomUUID();
-        ExpenseJpaEntity entity = createEntity(publicId, "To be deleted", "50.00");
-        jpaRepository.save(entity);
-
-        // Verify it exists first
+        jpaRepository.save(createEntity(publicId, "To be deleted", "50.00"));
         assertTrue(jpaRepository.findByPublicId(publicId).isPresent());
 
         // when
-        repository.deleteByPublicId(publicId);
+        boolean deleted = repository.deleteByPublicIdAndUserId(publicId, testEnvelope.getUser().getId());
 
         // then
+        assertTrue(deleted);
         assertTrue(jpaRepository.findByPublicId(publicId).isEmpty());
+    }
+
+    @Test
+    void deleteByPublicIdAndUserId_shouldReturnFalseWhenNotFound() {
+        // given
+        UUID nonExistentId = UUID.randomUUID();
+
+        // when
+        boolean deleted = repository.deleteByPublicIdAndUserId(nonExistentId, testEnvelope.getUser().getId());
+
+        // then
+        assertFalse(deleted);
     }
 
     /*
@@ -257,22 +257,21 @@ class ExpenseRepositoryIntegrationTest {
      */
     @Test
     void mapper_shouldCorrectlyConvertAllFields() {
-        // given - Create expense with specific values
+        // given
         UUID publicId = UUID.randomUUID();
         LocalDate date = LocalDate.of(2024, 6, 15);
         Instant createdAt = Instant.parse("2024-06-15T10:30:00Z");
 
-        Expense original = new Expense(null, testUser.getId(), publicId, ExpenseCategory.ENTERTAINMENT,
+        Expense original = new Expense(null, testEnvelope.getId(), publicId,
                 "Concert tickets", new Money(new BigDecimal("150.00")), date, createdAt);
 
-        // when - Save and retrieve
-        Expense saved = repository.save(original);
-        Expense retrieved = repository.findByPublicIdAndUserId(publicId, testUser.getId()).orElseThrow();
+        // when
+        repository.save(original);
+        Expense retrieved = repository.findByPublicIdAndEnvelopeId(publicId, testEnvelope.getId()).orElseThrow();
 
-        // then - All fields should match
+        // then
         assertEquals(publicId, retrieved.publicId());
-        assertEquals(testUser.getId(), retrieved.userId());
-        assertEquals(original.category(), retrieved.category());
+        assertEquals(testEnvelope.getId(), retrieved.envelopeId());
         assertEquals(original.description(), retrieved.description());
         assertEquals(0, new BigDecimal("150.00").compareTo(retrieved.amount().amount()));
         assertEquals(original.date(), retrieved.date());
@@ -283,15 +282,13 @@ class ExpenseRepositoryIntegrationTest {
      * =========================================================================
      * HELPER METHOD
      * =========================================================================
-     * Creates a JPA entity for test setup. Using JPA entity directly in test setup
-     * is fine - it bypasses our repository so we can test the repository in
-     * isolation.
+     * Creates a JPA entity for test setup. Using JPA entity directly in test
+     * setup is fine — it bypasses our repository so we can test it in isolation.
      */
     private ExpenseJpaEntity createEntity(UUID publicId, String description, String amount) {
         ExpenseJpaEntity entity = new ExpenseJpaEntity();
         entity.setPublicId(publicId);
-        entity.setUser(testUser);
-        entity.setCategory(ExpenseCategory.OTHER);
+        entity.setEnvelope(testEnvelope);
         entity.setDescription(description);
         entity.setAmount(new BigDecimal(amount));
         entity.setDate(LocalDate.now());

@@ -3,7 +3,6 @@ package com.harisw.springexpensetracker.application.auth.service;
 import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
 import com.harisw.springexpensetracker.application.auth.dto.response.AuthResponse;
 import com.harisw.springexpensetracker.application.auth.port.TokenService;
-import com.harisw.springexpensetracker.domain.auth.Role;
 import com.harisw.springexpensetracker.domain.auth.User;
 import com.harisw.springexpensetracker.domain.auth.UserRepository;
 import com.harisw.springexpensetracker.domain.auth.exception.DuplicateEmailException;
@@ -33,7 +32,7 @@ public class RegisterUserService {
         if (repository.findByEmail(cmd.email()).isPresent()) {
             throw new DuplicateEmailException();
         }
-        User user = new User(null, UUID.randomUUID(), cmd.email(), Role.USER, Instant.now());
+        User user = new User(null, cmd.email(), null, UUID.randomUUID(), Instant.now());
         String passwordHash = passwordEncoder.encode(cmd.password());
 
         User savedUser = repository.save(user, passwordHash);

@@ -18,9 +18,9 @@ public class DeleteExpenseService {
     }
 
     public void delete(UUID publicId, User user) {
-        if (repository.findByPublicIdAndUserId(publicId, user.id()).isEmpty()) {
+        boolean deleted = repository.deleteByPublicIdAndUserId(publicId, user.id());
+        if (!deleted) {
             throw new ExpenseNotFoundException(publicId);
         }
-        repository.deleteByPublicId(publicId);
     }
 }

@@ -1,7 +1,6 @@
 package com.harisw.springexpensetracker.infrastructure.persistence.auth;
 
 import com.harisw.springexpensetracker.domain.auth.AuthProvider;
-import com.harisw.springexpensetracker.domain.auth.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,14 +8,17 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.Table;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
 @Table(name = "users")
+@EntityListeners(AuditingEntityListener.class)
 public class UserJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,8 +27,8 @@ public class UserJpaEntity {
     private UUID publicId;
     @Column(name = "email", nullable = false, unique = true, updatable = false)
     private String email;
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    @Column(name = "name")
+    private String name;
     @Column(name = "password_hash")
     private String passwordHash;
     @Enumerated(EnumType.STRING)
@@ -64,12 +66,12 @@ public class UserJpaEntity {
         this.email = email;
     }
 
-    public Role getRole() {
-        return role;
+    public String getName() {
+        return name;
     }
 
-    public void setRole(Role role) {
-        this.role = role;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Instant getCreatedAt() {

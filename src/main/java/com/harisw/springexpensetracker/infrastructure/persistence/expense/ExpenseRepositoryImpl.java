@@ -23,30 +23,17 @@ public class ExpenseRepositoryImpl implements ExpenseRepository {
     }
 
     @Override
-    public Optional<Expense> findByPublicIdAndUserId(UUID publicId, Long userId) {
-        return jpa.findByPublicIdAndUserId(publicId, userId).map(ExpenseMapper::toDomain);
+    public Optional<Expense> findByPublicIdAndEnvelopeId(UUID publicId, Long envelopeId) {
+        return jpa.findByPublicIdAndEnvelopeId(publicId, envelopeId).map(ExpenseMapper::toDomain);
     }
 
     @Override
-    public List<Expense> findAll() {
-        return jpa.findAll().stream().map(ExpenseMapper::toDomain).toList(); // Java 16+
+    public List<Expense> findByEnvelopeId(Long envelopeId) {
+        return jpa.findByEnvelopeId(envelopeId).stream().map(ExpenseMapper::toDomain).toList(); // Java 16+
     }
 
     @Override
-    public List<Expense> findByUserId(Long userId) {
-        return jpa.findByUserId(userId).stream().map(ExpenseMapper::toDomain).toList();
+    public boolean deleteByPublicIdAndUserId(UUID publicId, Long userId) {
+        return jpa.deleteByPublicIdAndUserId(publicId, userId) > 0;
     }
-
-    @Override
-    public void deleteByPublicId(UUID publicId) {
-        jpa.deleteByPublicId(publicId);
-    }
-
-    // @Override
-    // public List<Expense> findByDateRange(LocalDate from, LocalDate to) {
-    // return jpa.findByDateBetween(from, to)
-    // .stream()
-    // .map(ExpenseMapper::toDomain)
-    // .toList();
-    // }
 }

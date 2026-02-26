@@ -6,6 +6,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record Expense(Long id, Long userId, UUID publicId, ExpenseCategory category, String description, Money amount,
+public record Expense(Long id, Long envelopeId, UUID publicId, String description, Money amount,
                       LocalDate date, Instant createdAt) {
 }

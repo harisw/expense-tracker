@@ -1,4 +1,8 @@
 package com.harisw.springexpensetracker.application.envelope.dto.command;
 
-public record CreateEnvelopeCommand() {
+import java.math.BigDecimal;
+import java.util.UUID;
+
+public record CreateEnvelopeCommand(UUID envelopeParentPublicId, String name,
+                                    Boolean isTemplate, BigDecimal budget, Boolean canNotify) {
 }

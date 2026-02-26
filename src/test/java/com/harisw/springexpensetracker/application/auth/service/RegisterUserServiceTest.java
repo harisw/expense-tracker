@@ -3,7 +3,6 @@ package com.harisw.springexpensetracker.application.auth.service;
 import com.harisw.springexpensetracker.application.auth.dto.command.AuthCommand;
 import com.harisw.springexpensetracker.application.auth.dto.response.AuthResponse;
 import com.harisw.springexpensetracker.application.auth.port.TokenService;
-import com.harisw.springexpensetracker.domain.auth.Role;
 import com.harisw.springexpensetracker.domain.auth.User;
 import com.harisw.springexpensetracker.domain.auth.UserRepository;
 import com.nimbusds.jose.JOSEException;
@@ -48,7 +47,7 @@ public class RegisterUserServiceTest {
     void create_shouldReturnSavedUser() throws JOSEException {
         AuthCommand command = new AuthCommand("TestUser@mail.com", "password123");
 
-        User savedUser = new User(1L, UUID.randomUUID(), command.email(), Role.USER, Instant.now());
+        User savedUser = new User(1L, command.email(), null, UUID.randomUUID(), Instant.now());
 
         // Stubs specific to this happy-path test
         when(repository.save(any(User.class), eq("hashedPassword"))).thenReturn(savedUser);

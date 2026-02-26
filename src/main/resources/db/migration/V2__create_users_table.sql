@@ -1,10 +1,12 @@
-CREATE TABLE expenses
+CREATE TABLE users
 (
-    id          BIGSERIAL PRIMARY KEY,
-    public_id   UUID           NOT NULL UNIQUE,
-    category    VARCHAR(50)    NOT NULL,
-    description VARCHAR(255)   NOT NULL,
-    amount      NUMERIC(12, 2) NOT NULL,
-    date        DATE           NOT NULL,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    email         varchar UNIQUE NOT NULL,
+    name          varchar        NOT NULL,
+    public_id     uuid UNIQUE    NOT NULL,
+    password_hash varchar,
+    auth_provider varchar        NOT NULL,
+    provider_id   varchar,
+    created_at    timestamptz    NOT NULL DEFAULT now(),
+    updated_at    timestamptz    NOT NULL DEFAULT now()
 );
