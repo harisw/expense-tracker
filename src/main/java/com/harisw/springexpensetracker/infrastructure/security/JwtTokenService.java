@@ -45,7 +45,6 @@ public class JwtTokenService implements TokenService {
     public String generateAccessToken(User user) throws JOSEException {
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(user.publicId().toString())
-                .claim("email", user.email())
                 .claim("name", user.name())
                 .issueTime(new Date())
                 .expirationTime(new Date(System.currentTimeMillis() + accessTokenExpiry))

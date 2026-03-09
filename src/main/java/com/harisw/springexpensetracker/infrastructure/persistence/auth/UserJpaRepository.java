@@ -13,7 +13,9 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, Long> {
 
     Optional<UserJpaEntity> findByEmail(String email);
 
-    void deleteByPublicId(UUID publicId);
+    @Modifying
+    @Query("DELETE FROM UserJpaEntity u WHERE u.publicId = :publicId")
+    int deleteByPublicId(UUID publicId);
 
     @Modifying
     @Query("DELETE FROM UserJpaEntity")

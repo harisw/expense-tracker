@@ -6,7 +6,6 @@ import com.harisw.springexpensetracker.domain.auth.UserRepository;
 import com.harisw.springexpensetracker.domain.auth.exception.InvalidCredentialsException;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,13 +43,8 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public List<User> findAll() {
-        return jpa.findAll().stream().map(UserMapper::toDomain).toList();
-    }
-
-    @Override
-    public void deleteByPublicId(UUID publicId) {
-        jpa.deleteByPublicId(publicId);
+    public boolean deleteByPublicId(UUID publicId) {
+        return jpa.deleteByPublicId(publicId) > 0;
     }
 
     @Override
